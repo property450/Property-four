@@ -77,7 +77,7 @@ export default function Map() {
   const filtered = properties.filter((house) => {
     const distance = getDistance(center.lat, center.lng, house.lat, house.lng);
     return (
-      house.name.toLowerCase().includes(search.toLowerCase()) &&
+      house.title?.toLowerCase().includes(search.toLowerCase()) &&
       distance <= range &&
       house.price >= minPrice &&
       house.price <= maxPrice
@@ -133,9 +133,13 @@ export default function Map() {
           <Marker key={house.id} position={[house.lat, house.lng]}>
             <Popup maxWidth={300}>
               <div style={{ textAlign: 'center' }}>
-                <img src={house.img} alt={house.name} style={{ width: '100%', borderRadius: '6px', marginBottom: '5px' }} />
-                <strong>{house.name}</strong><br />
-                RM{house.price.toLocaleString()}<br />
+                <img
+                  src={house.image || 'https://via.placeholder.com/300x200?text=No+Image'}
+                  alt={house.title || 'No title'}
+                  style={{ width: '100%', borderRadius: '6px', marginBottom: '5px' }}
+                />
+                <strong>{house.title || 'Untitled'}</strong><br />
+                RM{house.price?.toLocaleString() || 'N/A'}<br />
                 <a href={house.link} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '5px', color: 'blue' }}>
                   🔗 {t[lang].more}
                 </a>
