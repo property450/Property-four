@@ -40,21 +40,20 @@ export default function Map() {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <FlyTo lat={center.lat} lng={center.lng} />
-      {properties.map((house) => (
-       {properties.map((house) => {
-  if (!house.lat || !house.lng) return null; // ⛔️ lat/lng 缺失就跳过
-  return (
-    <Marker key={house.id} position={[house.lat, house.lng]}>
-      <Popup maxWidth={300}>
-        <div style={{ textAlign: 'center' }}>
-          <img src={house.image} alt={house.title} style={{ width: '100%', borderRadius: '6px', marginBottom: '5px' }} />
-          <strong>{house.title}</strong><br />
-          RM{house.price?.toLocaleString()}<br />
-          <a href={house.link} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '5px', color: 'blue' }}>
-            🔗 查看详情
-          </a>
-        </div>
-      </Popup>
-    </Marker>
-  );
+   {properties.map((house) => {
+  if (!house.lat || !house.lng) return null; // ⛔️ 如果缺 lat/lng，就跳过这条
+  return (
+    <Marker key={house.id} position={[house.lat, house.lng]}>
+      <Popup maxWidth={300}>
+        <div style={{ textAlign: 'center' }}>
+          <img src={house.image} alt={house.title} style={{ width: '100%', borderRadius: '6px', marginBottom: '5px' }} />
+          <strong>{house.title}</strong><br />
+          RM{house.price?.toLocaleString()}<br />
+          <a href={house.link} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '5px', color: 'blue' }}>
+            🔗 查看详情
+          </a>
+        </div>
+      </Popup>
+    </Marker>
+  );
 })}
