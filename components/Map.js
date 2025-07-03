@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { supabase } from '../supabaseClient';
 
-// 设置 Leaflet 默认图标
+// 设置默认图标
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -34,6 +34,14 @@ export default function Map() {
     fetchProperties();
   }, []);
 
+  const validProperties = properties.filter(
+    (house) =>
+      house.lat !== null &&
+      house.lng !== null &&
+      !isNaN(parseFloat(house.lat)) &&
+      !isNaN(parseFloat(house.lng))
+  );
+
   return (
     <MapContainer center={[center.lat, center.lng]} zoom={12} scrollWheelZoom={true} style={{ height: '500px', width: '100%' }}>
       <TileLayer
@@ -41,12 +49,9 @@ export default function Map() {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <FlyTo lat={center.lat} lng={center.lng} />
-
-      {properties.map((house) => {
+      {validProperties.map((house) => {
         const lat = parseFloat(house.lat);
         const lng = parseFloat(house.lng);
-        if (isNaN(lat) || isNaN(lng)) return null;
-
         return (
           <Marker key={house.id} position={[lat, lng]}>
             <Popup maxWidth={300}>
