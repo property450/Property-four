@@ -18,33 +18,34 @@ const supabase = createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrdmhzb2RqZGR5d29tcmp3eXdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NDM2ODIsImV4cCI6MjA2NjQxOTY4Mn0.3I6C8aE8wJqBV-_mKbaQzw1G-MPzkergOv-0KxSkT44'
 );
 
-// 让地图移动
-function FlyTo({ lat, lng }) {
+// 地图自动飞行组件
+function FlyToFirstMarker({ properties }) {
   const map = useMap();
-  map.flyTo([lat, lng], 13);
+
+  useEffect(() => {
+    if (properties.length > 0) {
+      const { lat, lng } = properties[0];
+      map.flyTo([lat, lng], 14);
+    }
+  }, [properties, map]);
+
   return null;
 }
 
 export default function Map() {
   const [properties, setProperties] = useState([]);
-  const [center, setCenter] = useState({ lat: 3.12, lng: 101.62 });
 
   useEffect(() => {
-    console.log("🔥 Map useEffect triggered");
-
     async function fetchProperties() {
       const { data, error } = await supabase.from('properties').select('*');
-      console.log("✅ fetched data:", data);
-      console.log("❌ error:", error);
-      if (data) setProperties(data);
+      if (data) setProperties(data.filter(h => h.lat && h.lng));
     }
-
     fetchProperties();
   }, []);
 
   return (
     <MapContainer
-      center={[center.lat, center.lng]}
+      center={[3.12, 101.62]} // 初始中心
       zoom={12}
       scrollWheelZoom={true}
       style={{ height: '500px', width: '100%' }}
@@ -53,21 +54,19 @@ export default function Map() {
         attribution='&copy; OpenStreetMap contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <FlyTo lat={center.lat} lng={center.lng} />
-      {properties
-        .filter(h => h.lat && h.lng)
-        .map((house) => (
-          <Marker key={house.id} position={[house.lat, house.lng]}>
-            <Popup>
-              <div>
-                <strong>{house.title}</strong><br />
-                RM{house.price}<br />
-                <a href={house.link} target="_blank" rel="noopener noreferrer">🔗 查看详情</a><br />
-                <img src={house.image} alt={house.title} style={{ width: '100%', marginTop: '5px' }} />
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+      <FlyToFirstMarker properties={properties} />
+      {properties.map((house) => (
+        <Marker key={house.id} position={[house.lat, house.lng]}>
+          <Popup>
+            <div>
+              <strong>{house.title}</strong><br />
+              RM{house.price}<br />
+              <a href={house.link} target="_blank" rel="noopener noreferrer">🔗 查看详情</a><br />
+              <img src={house.image} alt={house.title} style={{ width: '100%', marginTop: '5px' }} />
+            </div>
+          </Popup>
+        </Marker>
+      ))}
     </MapContainer>
   );
 }
