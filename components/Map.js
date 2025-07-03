@@ -146,3 +146,13 @@ export default function Map() {
     </div>
   );
 }
+useEffect(() => {
+  console.log("🔥 Map useEffect triggered");
+  async function fetchProperties() {
+    const { data, error } = await supabase.from('properties').select('*');
+    console.log("✅ fetched data:", data);
+    console.log("❌ error:", error);
+    if (!error) setProperties(data);
+  }
+  fetchProperties();
+}, []);
