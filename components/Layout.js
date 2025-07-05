@@ -1,4 +1,3 @@
-// components/Layout.js
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
@@ -6,24 +5,29 @@ import { supabase } from '../supabaseClient';
 export default function Layout({ children }) {
   const [user, setUser] = useState(null);
 
-  // 获取当前登录用户
   useEffect(() => {
+    // 初始获取用户
     const getUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (data?.user) {
-        setUser(data.user);
-      } else {
-        setUser(null);
-      }
+      const { data } = await supabase.auth.getUser();
+      setUser(data?.user || null);
     };
     getUser();
+
+    // 实时监听用户状态变化（关键修复）
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+
+    // 清理监听器
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
     alert('你已登出');
-    location.reload(); // 刷新页面状态
   };
 
   return (
