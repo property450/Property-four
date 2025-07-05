@@ -6,11 +6,14 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    setLoading(true);
     const { error } = await supabase.auth.signUp({ email, password });
+    setLoading(false);
     if (error) {
       setError(error.message);
     } else {
@@ -41,8 +44,9 @@ export default function Register() {
         <button
           type="submit"
           className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          disabled={loading}
         >
-          注册
+          {loading ? '注册中...' : '注册'}
         </button>
       </form>
     </div>
