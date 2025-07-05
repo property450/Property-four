@@ -3,71 +3,112 @@ import { supabase } from '../supabaseClient';
 import { useRouter } from 'next/router';
 
 export default function Upload() {
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    price: '',
-    image: '',
-  });
-  const [error, setError] = useState(null);
-  const router = useRouter();
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
+  const [address, setAddress] = useState('');
+  const [image, setImage] = useState('');
+  const [lat, setLat] = useState('');
+  const [lng, setLng] = useState('');
+  const [link, setLink] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const router = useRouter();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const { error } = await supabase.from('properties').insert([form]);
-    if (error) {
-      setError(error.message);
-    } else {
-      alert('房源上传成功！');
-      router.push('/');
-    }
-  };
+  const handleUpload = async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
 
-  return (
-    <div className="p-6 max-w-xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">上传房源</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          name="title"
-          placeholder="标题"
-          className="w-full border px-3 py-2 rounded"
-          value={form.title}
-          onChange={handleChange}
-        />
-        <textarea
-          name="description"
-          placeholder="描述"
-          className="w-full border px-3 py-2 rounded"
-          value={form.description}
-          onChange={handleChange}
-        />
-        <input
-          name="price"
-          placeholder="价格 (RM)"
-          type="number"
-          className="w-full border px-3 py-2 rounded"
-          value={form.price}
-          onChange={handleChange}
-        />
-        <input
-          name="image"
-          placeholder="图片链接"
-          className="w-full border px-3 py-2 rounded"
-          value={form.image}
-          onChange={handleChange}
-        />
-        {error && <p className="text-red-500">{error}</p>}
-        <button
-          type="submit"
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-        >
-          上传
-        </button>
-      </form>
-    </div>
-  );
+    if (!userId) {
+      alert('请先登录');
+      return;
+    }
+
+    const { error } = await supabase.from('properties').insert([
+      {
+        title,
+        description,
+        price: Number(price),
+        address,
+        image,
+        lat: Number(lat),
+        lng: Number(lng),
+        link,
+        user_id: userId,
+      }
+    ]);
+
+    if (error) {
+      console.error('上传失败:', error);
+      setErrorMsg(error.message);
+      alert('上传失败，请查看控制台');
+    } else {
+      alert('上传成功');
+      router.push('/');
+    }
+  };
+
+  return (
+    <div className="max-w-xl mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">上传房源</h1>
+      <input
+        className="w-full border p-2 mb-2"
+        placeholder="房源标题"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+      />
+      <textarea
+        className="w-full border p-2 mb-2"
+        placeholder="房源描述"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+      />
+      <input
+        className="w-full border p-2 mb-2"
+        placeholder="价格（RM）"
+        type="number"
+        value={price}
+        onChange={(e) => setPrice(e.target.value)}
+      />
+      <input
+        className="w-full border p-2 mb-2"
+        placeholder="地址"
+        value={address}
+        onChange={(e) => setAddress(e.target.value)}
+      />
+      <input
+        className="w-full border p-2 mb-2"
+        placeholder="图片链接"
+        value={image}
+        onChange={(e) => setImage(e.target.value)}
+      />
+      <input
+        className="w-full border p-2 mb-2"
+        placeholder="纬度（latitude）"
+        type="number"
+        value={lat}
+        onChange={(e) => setLat(e.target.value)}
+      />
+      <input
+        className="w-full border p-2 mb-2"
+        placeholder="经度（longitude）"
+        type="number"
+        value={lng}
+        onChange={(e) => setLng(e.target.value)}
+      />
+      <input
+        className="w-full border p-2 mb-2"
+        placeholder="详情链接（如视频或网页）"
+        value={link}
+        onChange={(e) => setLink(e.target.value)}
+      />
+      {errorMsg && <p className="text-red-500">{errorMsg}</p>}
+      <button
+        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mt-2"
+        onClick={handleUpload}
+      >
+        上传房源
+      </button>
+    </div>
+  );
 }
