@@ -16,11 +16,15 @@ export default function Upload() {
   const router = useRouter();
 
   const handleUpload = async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    const userId = userData?.user?.id;
-
-    if (!userId) {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData?.user) {
       alert('请先登录');
+      return;
+    }
+    const userId = userData.user.id;
+
+    if (!title || !price || !lat || !lng || !image) {
+      alert('请填写所有必填字段（标题、价格、图片、经纬度）');
       return;
     }
 
@@ -28,22 +32,22 @@ export default function Upload() {
       {
         title,
         description,
-        price: Number(price),
+        price: parseFloat(price),
         address,
         image,
-        lat: Number(lat),
-        lng: Number(lng),
+        lat: parseFloat(lat),
+        lng: parseFloat(lng),
         link,
         user_id: userId,
       }
     ]);
 
     if (error) {
-      console.error('上传失败:', error);
+      console.error('❌ 上传失败:', error);
       setErrorMsg(error.message);
       alert('上传失败，请查看控制台');
     } else {
-      alert('上传成功');
+      alert('✅ 上传成功！');
       router.push('/');
     }
   };
@@ -51,6 +55,7 @@ export default function Upload() {
   return (
     <div className="max-w-xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">上传房源</h1>
+
       <input
         className="w-full border p-2 mb-2"
         placeholder="房源标题"
