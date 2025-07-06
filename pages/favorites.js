@@ -21,14 +21,13 @@ export default function Favorites() {
 
       const { data, error } = await supabase
         .from('favorites')
-        .select('property_id, properties(*)')
+        .select('id, property_id, properties(*)')
         .eq('user_id', user.id);
 
       if (error) {
         console.error('获取收藏失败', error);
       } else {
-        const list = data.map((item) => item.properties);
-        setFavorites(list);
+        setFavorites(data);
       }
 
       setLoading(false);
@@ -37,17 +36,17 @@ export default function Favorites() {
     fetchFavorites();
   }, []);
 
-  const handleUnfavorite = async (propertyId) => {
+  const handleUnfavorite = async (favoriteId) => {
     const { error } = await supabase
       .from('favorites')
       .delete()
-      .eq('property_id', propertyId)
-      .eq('user_id', user.id);
+      .eq('id', favoriteId);
 
     if (error) {
       console.error('取消收藏失败', error);
+      alert('取消失败');
     } else {
-      setFavorites((prev) => prev.filter((p) => p.id !== propertyId));
+      setFavorites((prev) => prev.filter((f) => f.id !== favoriteId));
     }
   };
 
@@ -61,7 +60,7 @@ export default function Favorites() {
         <p>你还没有收藏任何房源。</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {favorites.map((house) => (
+          {favorites.map(({ id, properties: house }) => (
             <div
               key={house.id}
               className="border p-4 rounded shadow hover:shadow-lg transition"
@@ -82,7 +81,7 @@ export default function Favorites() {
               </Link>
               <br />
               <button
-                onClick={() => handleUnfavorite(house.id)}
+                onClick={() => handleUnfavorite(id)}
                 className="mt-2 text-sm text-red-600 hover:underline"
               >
                 ❌ 取消收藏
