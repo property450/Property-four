@@ -9,10 +9,7 @@ export default function Favorites() {
 
   useEffect(() => {
     const fetchFavorites = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         alert('请先登录');
         return;
@@ -44,8 +41,7 @@ export default function Favorites() {
       .eq('id', favoriteId);
 
     if (error) {
-      console.error('取消收藏失败', error);
-      alert('取消失败');
+      alert('取消收藏失败');
     } else {
       setFavorites((prev) => prev.filter((f) => f.id !== favoriteId));
     }
@@ -56,25 +52,22 @@ export default function Favorites() {
 
   return (
     <div className="max-w-4xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">❤️ 我的收藏</h1>
+      <h1 className="text-2xl font-bold mb-4">❤️ 我的收藏房源</h1>
       {favorites.length === 0 ? (
         <p>你还没有收藏任何房源。</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {favorites.map(({ id, properties: house }) => (
-            <div
-              key={id}
-              className="border p-4 rounded shadow hover:shadow-lg transition"
-            >
-              <img
-                src={house.image}
-                alt={house.title}
-                className="w-full h-48 object-cover rounded mb-2"
-              />
+            <div key={id} className="border p-4 rounded shadow">
+              {house.image && (
+                <img
+                  src={house.image}
+                  alt={house.title}
+                  className="w-full h-48 object-cover rounded mb-2"
+                />
+              )}
               <h2 className="text-lg font-semibold">{house.title}</h2>
-              <p className="text-gray-600">
-                RM{house.price?.toLocaleString()}
-              </p>
+              <p className="text-gray-600">RM{house.price?.toLocaleString()}</p>
               <Link
                 href={house.link}
                 className="text-blue-600 underline"
@@ -82,9 +75,10 @@ export default function Favorites() {
               >
                 查看详情
               </Link>
+              <br />
               <button
                 onClick={() => handleUnfavorite(id)}
-                className="mt-3 inline-block text-sm text-red-600 hover:underline"
+                className="mt-2 text-sm text-red-600 hover:underline"
               >
                 ❌ 取消收藏
               </button>
