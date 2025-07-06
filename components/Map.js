@@ -11,6 +11,19 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
+function getDistance(lat1, lng1, lat2, lng2) {
+  const toRad = (value) => (value * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 function FlyTo({ lat, lng }) {
   const map = useMap();
   map.flyTo([lat, lng], 13);
@@ -22,7 +35,7 @@ export default function Map() {
   const [search, setSearch] = useState('');
   const [range, setRange] = useState(10);
   const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(1000000);
+  const [maxPrice, setMaxPrice] = useState(9999999);
   const [center, setCenter] = useState({ lat: 3.12, lng: 101.62 });
   const [lang, setLang] = useState('en');
 
@@ -49,17 +62,33 @@ export default function Map() {
     async function fetchProperties() {
       const { data, error } = await supabase.from('properties').select('*');
       console.log('✅ fetched properties:', data);
-      console.log('✅ filtered by lat/lng:', data.filter(h => h.lat && h.lng));
       if (!error && data) {
-        const valid = data.filter(h => h.lat && h.lng);
+        const valid = data.filter(h => !!h.lat && !!h.lng);
+        console.log('✅ filtered by lat/lng:', valid);
         setProperties(valid);
+      } else {
+        console.error('❌ fetch error:', error);
       }
     }
     fetchProperties();
   }, []);
 
-  // 暂时关闭筛选，确保能看到全部 marker
-  const filtered = properties;
+  const filtered = properties.filter((house) => {
+    const distance = getDistance(center.lat, center.lng, house.lat, house.lng);
+    const isMatch = (
+      (house.title?.toLowerCase().includes(search.toLowerCase()) || '') &&
+      distance <= range &&
+      house.price >= minPrice &&
+      house.price <= maxPrice
+    );
+    if (!isMatch) {
+      console.log(`🟡 排除房源：${house.title} - 距离: ${distance} km`);
+    }
+    return isMatch;
+  });
+
+  console.log('📍 当前中心点:', center);
+  console.log('📊 最终筛选后房源:', filtered);
 
   const handleLocationSearch = async () => {
     if (!search) return;
@@ -102,7 +131,7 @@ export default function Map() {
         </div>
       </div>
 
-      {/* 地图 */}
+      {/* 地图显示 */}
       <MapContainer center={[center.lat, center.lng]} zoom={12} scrollWheelZoom={true} style={{ height: '500px', width: '100%' }}>
         <TileLayer
           attribution='&copy; OpenStreetMap contributors'
@@ -110,7 +139,7 @@ export default function Map() {
         />
         <FlyTo lat={center.lat} lng={center.lng} />
         {filtered.map((house) => (
-          <Marker key={house.id} position={[house.lat, house.lng]}>
+          <Marker key={house.id} position={[parseFloat(house.lat), parseFloat(house.lng)]}>
             <Popup maxWidth={300}>
               <div style={{ textAlign: 'center' }}>
                 <img src={house.image} alt={house.title} style={{ width: '100%', borderRadius: '6px', marginBottom: '5px' }} />
