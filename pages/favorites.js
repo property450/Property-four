@@ -27,6 +27,7 @@ export default function Favorites() {
       if (error) {
         console.error('获取收藏失败', error);
       } else {
+        console.log('当前收藏:', data);
         setFavorites(data);
       }
 
@@ -62,7 +63,7 @@ export default function Favorites() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {favorites.map(({ id, properties: house }) => (
             <div
-              key={house.id}
+              key={id}
               className="border p-4 rounded shadow hover:shadow-lg transition"
             >
               <img
