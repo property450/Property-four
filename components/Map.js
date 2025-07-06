@@ -3,7 +3,9 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { supabase } from '../supabaseClient';
+import Link from 'next/link';
 
+// 设置默认图标
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -33,13 +35,13 @@ function FlyTo({ lat, lng }) {
 export default function Map() {
   const [properties, setProperties] = useState([]);
   const [favorites, setFavorites] = useState([]);
-  const [userId, setUserId] = useState(null);
   const [search, setSearch] = useState('');
   const [range, setRange] = useState(10);
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(1000000);
   const [center, setCenter] = useState({ lat: 3.12, lng: 101.62 });
   const [lang, setLang] = useState('en');
+  const [user, setUser] = useState(null);
 
   const t = {
     en: {
@@ -48,9 +50,8 @@ export default function Map() {
       distance: 'Distance (km)',
       price: 'Price',
       more: 'View more',
-      favorite: 'Favorite',
-      unfavorite: 'Unfavorite',
-      langSwitch: 'Switch to 中文'
+      langSwitch: 'Switch to 中文',
+      favorites: 'Favorites'
     },
     zh: {
       searchPlaceholder: '请输入地点（如 吉隆坡）',
@@ -58,34 +59,43 @@ export default function Map() {
       distance: '距离 (公里)',
       price: '价格',
       more: '查看更多',
-      favorite: '收藏',
-      unfavorite: '取消收藏',
-      langSwitch: '切换 English'
+      langSwitch: '切换 English',
+      favorites: '收藏列表'
     }
   };
 
   useEffect(() => {
-    async function fetchData() {
-      const { data: userData } = await supabase.auth.getUser();
-      const uid = userData?.user?.id;
-      setUserId(uid);
+    const fetchData = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData?.user) {
+        setUser(authData.user);
+        const { data: favs } = await supabase
+          .from('favorites')
+          .select('property_id')
+          .eq('user_id', authData.user.id);
+        setFavorites(favs.map(f => f.property_id));
+      }
 
       const { data, error } = await supabase.from('properties').select('*');
       if (!error && data) {
         const valid = data.filter(h => h.lat && h.lng);
         setProperties(valid);
       }
-
-      if (uid) {
-        const { data: favData } = await supabase
-          .from('favorites')
-          .select('property_id')
-          .eq('user_id', uid);
-        setFavorites(favData?.map(f => f.property_id) || []);
-      }
-    }
+    };
     fetchData();
   }, []);
+
+  const handleFavorite = async (propertyId) => {
+    if (!user) {
+      alert('请先登录');
+      return;
+    }
+    const { error } = await supabase.from('favorites').insert({
+      user_id: user.id,
+      property_id: propertyId,
+    });
+    if (!error) setFavorites((prev) => [...prev, propertyId]);
+  };
 
   const filtered = properties.filter((house) => {
     const distance = getDistance(center.lat, center.lng, house.lat, house.lng);
@@ -108,37 +118,17 @@ export default function Map() {
     }
   };
 
-  const toggleFavorite = async (propertyId) => {
-    if (!userId) {
-      alert('请先登录');
-      return;
-    }
-
-    const isFavorited = favorites.includes(propertyId);
-
-    if (isFavorited) {
-      await supabase
-        .from('favorites')
-        .delete()
-        .eq('user_id', userId)
-        .eq('property_id', propertyId);
-      setFavorites((prev) => prev.filter((id) => id !== propertyId));
-    } else {
-      await supabase.from('favorites').insert([{ user_id: userId, property_id: propertyId }]);
-      setFavorites((prev) => [...prev, propertyId]);
-    }
-  };
-
   return (
     <div>
-      {/* 切换语言 */}
-      <div style={{ textAlign: 'right', padding: '10px 20px' }}>
+      <div className="flex justify-between items-center px-4 pt-4">
         <button onClick={() => setLang(lang === 'en' ? 'zh' : 'en')}>
           🌐 {t[lang].langSwitch}
         </button>
+        <Link href="/favorites" className="text-blue-600 underline">
+          🛒 {t[lang].favorites} ({favorites.length})
+        </Link>
       </div>
 
-      {/* 搜索栏 & 筛选条件 */}
       <div style={{ textAlign: 'center', marginBottom: '10px' }}>
         <input
           type="text"
@@ -159,7 +149,6 @@ export default function Map() {
         </div>
       </div>
 
-      {/* 地图 */}
       <MapContainer center={[center.lat, center.lng]} zoom={12} scrollWheelZoom={true} style={{ height: '500px', width: '100%' }}>
         <TileLayer
           attribution='&copy; OpenStreetMap contributors'
@@ -176,13 +165,13 @@ export default function Map() {
                 <a href={house.link} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '5px', color: 'blue' }}>
                   🔗 {t[lang].more}
                 </a>
-                <br />
-                <button
-                  onClick={() => toggleFavorite(house.id)}
-                  style={{ marginTop: '8px', padding: '6px 12px', backgroundColor: favorites.includes(house.id) ? 'red' : 'green', color: '#fff', borderRadius: '5px' }}
-                >
-                  {favorites.includes(house.id) ? t[lang].unfavorite : t[lang].favorite}
-                </button>
+                <div className="mt-2">
+                  {favorites.includes(house.id) ? (
+                    <button className="text-red-500" disabled>❤️ 已收藏</button>
+                  ) : (
+                    <button onClick={() => handleFavorite(house.id)} className="text-gray-600 hover:text-red-500">🤍 收藏</button>
+                  )}
+                </div>
               </div>
             </Popup>
           </Marker>
