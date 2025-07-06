@@ -12,6 +12,7 @@ export default function Favorites() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+
       if (!user) {
         alert('请先登录');
         return;
@@ -27,7 +28,6 @@ export default function Favorites() {
       if (error) {
         console.error('获取收藏失败', error);
       } else {
-        console.log('当前收藏:', data);
         setFavorites(data);
       }
 
@@ -45,7 +45,7 @@ export default function Favorites() {
 
     if (error) {
       console.error('取消收藏失败', error);
-      alert('取消失败');
+      alert('取消失败，请稍后再试');
     } else {
       setFavorites((prev) => prev.filter((f) => f.id !== favoriteId));
     }
@@ -57,6 +57,7 @@ export default function Favorites() {
   return (
     <div className="max-w-4xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">❤️ 我的收藏房源</h1>
+
       {favorites.length === 0 ? (
         <p>你还没有收藏任何房源。</p>
       ) : (
@@ -80,10 +81,11 @@ export default function Favorites() {
               >
                 查看详情
               </Link>
-              <br />
+
+              {/* ❌取消收藏按钮 */}
               <button
                 onClick={() => handleUnfavorite(id)}
-                className="mt-2 text-sm text-red-600 hover:underline"
+                className="mt-2 block text-red-600 hover:underline text-sm"
               >
                 ❌ 取消收藏
               </button>
