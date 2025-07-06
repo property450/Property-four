@@ -66,7 +66,9 @@ export default function Favorites() {
                   className="w-full h-48 object-cover rounded mb-2"
                 />
               )}
-              <h2 className="text-lg font-semibold">{house.title}</h2>
+              <h2 className="text-lg font-semibold text-green-600">
+                {house.title}
+              </h2>
               <p className="text-gray-600">RM{house.price?.toLocaleString()}</p>
               <Link
                 href={house.link}
@@ -78,7 +80,7 @@ export default function Favorites() {
               <br />
               <button
                 onClick={() => handleUnfavorite(id)}
-                className="mt-2 text-sm text-red-600 hover:underline"
+                className="mt-2 inline-block text-sm text-red-600 border border-red-600 px-2 py-1 rounded hover:bg-red-100"
               >
                 ❌ 取消收藏
               </button>
