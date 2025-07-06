@@ -3,7 +3,9 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { supabase } from '../supabaseClient';
+import { useSession } from '@supabase/auth-helpers-react';
 
+// 设置默认地图图标
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -31,11 +33,15 @@ function FlyTo({ lat, lng }) {
 }
 
 export default function Map() {
+  const session = useSession();
+  const user = session?.user;
+
   const [properties, setProperties] = useState([]);
+  const [favorites, setFavorites] = useState([]);
   const [search, setSearch] = useState('');
   const [range, setRange] = useState(10);
   const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(9999999);
+  const [maxPrice, setMaxPrice] = useState(1000000);
   const [center, setCenter] = useState({ lat: 3.12, lng: 101.62 });
   const [lang, setLang] = useState('en');
 
@@ -61,34 +67,34 @@ export default function Map() {
   useEffect(() => {
     async function fetchProperties() {
       const { data, error } = await supabase.from('properties').select('*');
-      console.log('✅ fetched properties:', data);
       if (!error && data) {
-        const valid = data.filter(h => !!h.lat && !!h.lng);
-        console.log('✅ filtered by lat/lng:', valid);
+        const valid = data.filter(h => h.lat && h.lng);
         setProperties(valid);
-      } else {
-        console.error('❌ fetch error:', error);
       }
     }
+
+    async function fetchFavorites() {
+      if (!user) return;
+      const { data } = await supabase
+        .from('favorites')
+        .select('property_id')
+        .eq('user_id', user.id);
+      setFavorites(data.map(f => f.property_id));
+    }
+
     fetchProperties();
-  }, []);
+    fetchFavorites();
+  }, [user]);
 
   const filtered = properties.filter((house) => {
     const distance = getDistance(center.lat, center.lng, house.lat, house.lng);
-    const isMatch = (
+    return (
       (house.title?.toLowerCase().includes(search.toLowerCase()) || '') &&
       distance <= range &&
       house.price >= minPrice &&
       house.price <= maxPrice
     );
-    if (!isMatch) {
-      console.log(`🟡 排除房源：${house.title} - 距离: ${distance} km`);
-    }
-    return isMatch;
   });
-
-  console.log('📍 当前中心点:', center);
-  console.log('📊 最终筛选后房源:', filtered);
 
   const handleLocationSearch = async () => {
     if (!search) return;
@@ -103,14 +109,12 @@ export default function Map() {
 
   return (
     <div>
-      {/* 切换语言 */}
       <div style={{ textAlign: 'right', padding: '10px 20px' }}>
         <button onClick={() => setLang(lang === 'en' ? 'zh' : 'en')}>
           🌐 {t[lang].langSwitch}
         </button>
       </div>
 
-      {/* 搜索栏 & 筛选条件 */}
       <div style={{ textAlign: 'center', marginBottom: '10px' }}>
         <input
           type="text"
@@ -131,7 +135,6 @@ export default function Map() {
         </div>
       </div>
 
-      {/* 地图显示 */}
       <MapContainer center={[center.lat, center.lng]} zoom={12} scrollWheelZoom={true} style={{ height: '500px', width: '100%' }}>
         <TileLayer
           attribution='&copy; OpenStreetMap contributors'
@@ -139,7 +142,7 @@ export default function Map() {
         />
         <FlyTo lat={center.lat} lng={center.lng} />
         {filtered.map((house) => (
-          <Marker key={house.id} position={[parseFloat(house.lat), parseFloat(house.lng)]}>
+          <Marker key={house.id} position={[house.lat, house.lng]}>
             <Popup maxWidth={300}>
               <div style={{ textAlign: 'center' }}>
                 <img src={house.image} alt={house.title} style={{ width: '100%', borderRadius: '6px', marginBottom: '5px' }} />
@@ -147,7 +150,41 @@ export default function Map() {
                 RM{house.price?.toLocaleString()}<br />
                 <a href={house.link} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '5px', color: 'blue' }}>
                   🔗 {t[lang].more}
-                </a>
+                </a><br />
+                {user && (
+                  <button
+                    onClick={async () => {
+                      const isFav = favorites.includes(house.id);
+                      if (isFav) {
+                        await supabase
+                          .from('favorites')
+                          .delete()
+                          .eq('user_id', user.id)
+                          .eq('property_id', house.id);
+                      } else {
+                        await supabase
+                          .from('favorites')
+                          .insert({ user_id: user.id, property_id: house.id });
+                      }
+                      const { data } = await supabase
+                        .from('favorites')
+                        .select('property_id')
+                        .eq('user_id', user.id);
+                      setFavorites(data.map(f => f.property_id));
+                    }}
+                    style={{
+                      marginTop: '10px',
+                      padding: '5px 10px',
+                      borderRadius: '6px',
+                      background: favorites.includes(house.id) ? 'red' : '#ccc',
+                      color: '#fff',
+                      border: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {favorites.includes(house.id) ? '❤️ 已收藏' : '🤍 收藏'}
+                  </button>
+                )}
               </div>
             </Popup>
           </Marker>
