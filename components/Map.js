@@ -11,19 +11,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-function getDistance(lat1, lng1, lat2, lng2) {
-  const toRad = (value) => (value * Math.PI) / 180;
-  const R = 6371;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
 function FlyTo({ lat, lng }) {
   const map = useMap();
   map.flyTo([lat, lng], 13);
@@ -62,6 +49,7 @@ export default function Map() {
     async function fetchProperties() {
       const { data, error } = await supabase.from('properties').select('*');
       console.log('✅ fetched properties:', data);
+      console.log('✅ filtered by lat/lng:', data.filter(h => h.lat && h.lng));
       if (!error && data) {
         const valid = data.filter(h => h.lat && h.lng);
         setProperties(valid);
@@ -70,15 +58,8 @@ export default function Map() {
     fetchProperties();
   }, []);
 
-  const filtered = properties.filter((house) => {
-    const distance = getDistance(center.lat, center.lng, house.lat, house.lng);
-    return (
-      (house.title?.toLowerCase().includes(search.toLowerCase()) || '') &&
-      distance <= range &&
-      house.price >= minPrice &&
-      house.price <= maxPrice
-    );
-  });
+  // 暂时关闭筛选，确保能看到全部 marker
+  const filtered = properties;
 
   const handleLocationSearch = async () => {
     if (!search) return;
